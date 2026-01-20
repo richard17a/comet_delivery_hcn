@@ -122,7 +122,7 @@ def main():
     plt.gca().tick_params(axis='both', which='both', top=True, bottom=True,
                           left=True, right=True, direction='in')
 
-    # plt.savefig('./figures/SFD_evol.pdf', format='pdf', bbox_inches='tight')
+    plt.savefig('./figures/SFD_evol.pdf', format='pdf', bbox_inches='tight')
 
     plt.show()
 
