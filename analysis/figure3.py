@@ -6,10 +6,39 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 from utils import set_size
-from num_preb_envs import read_guokorenaga2020, load_simulation_data, vertical_gradient_span
+from num_preb_envs import load_simulation_data
 
 matplotlib.rcParams['mathtext.fontset'] = 'cm'
 matplotlib.rcParams['font.family'] = 'STIXGeneral'
+
+
+def vertical_gradient_span(ax, xmin, xmax, color, alpha_top=0.2, zorder=0, flip=False):
+
+    rgb = matplotlib.colors.to_rgb(color)
+    
+    trans = matplotlib.transforms.blended_transform_factory(ax.transData, ax.transAxes)
+
+    gradient = np.ones((256, 1, 4))
+    gradient[..., :3] = rgb
+    if not flip:
+        gradient[..., 3] = np.linspace(0, alpha_top, 256)[:, None]
+        ax.imshow(gradient,
+                extent=(xmin, xmax, 0.2, 1),
+                aspect='auto',
+                origin='lower',
+                transform=trans,
+                zorder=zorder,
+                rasterized=True)
+
+    else:
+        gradient[..., 3] = np.linspace(alpha_top, 0, 256)[:, None]
+        ax.imshow(gradient,
+              extent=(xmin, xmax, 0., 1),
+              aspect='auto',
+              origin='lower',
+              transform=trans,
+              zorder=zorder,
+              rasterized=True)
 
 
 def main():

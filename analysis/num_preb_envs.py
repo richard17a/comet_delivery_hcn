@@ -1,24 +1,84 @@
+# pylint: disable=C0103,E1101,R0913,R0917,R0914,W0621,R0915
+
+"""
+Docstring for num_preb_envs
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-import pandas as pd
-from matplotlib.ticker import AutoMinorLocator
 from cmcrameri import cm
-from scipy.ndimage import uniform_filter1d
 import scipy
-import multiprocessing as mp
-import atmos_entry_interp, hcn_surv_interp
+import atmos_entry_interp
+import hcn_surv_interp
 from impactor_distributions import get_population, get_population_21kms, get_population_DS09
 from nesvorny2023 import convert_sfd
 import h5py
 from utils import set_size
 
-
 matplotlib.rcParams['mathtext.fontset'] = 'cm'
 matplotlib.rcParams['font.family'] = 'STIXGeneral'
 
 
+def req_delivery_efficiency(density, molar_mass_hcn, rads):
+    """
+    Docstring for req_delivery_efficiency
+    
+    :param density: Description
+    :param molar_mass_hcn: Description
+    :param rads: Description
+    """
+
+    volumes = (4/3) * np.pi * (rads ** 3)
+    hcn_concentrations = [1e-4, 1e-3, 10e-3, 30e-3]
+    hcn_amounts = [(conc * density * volumes * molar_mass_hcn / 1e3) for conc in hcn_concentrations]
+    hcn_init = (4 * np.pi * density * (rads ** 3) / 3) * 1e-3
+
+    return [np.mean(hcn / hcn_init * 100) for hcn in hcn_amounts]
+
+
+# *************** Precompute constants and interpolators once ***************
+DENSITY = 0.6e3
+MOLAR_MASS_HCN = 27.03
+RADS = np.logspace(2, 4, 1000)
+REQ_EFF = req_delivery_efficiency(DENSITY, MOLAR_MASS_HCN, RADS)
+HCN_CONC = 1e-3
+
+C_S = 1./6.
+F1, F2, F3 = 6.5e3, 6.5e3, 4e-3
+ALPHA1, ALPHA2 = 1, 0.44
+TAU1, TAU2 = 7, 13
+
+T = np.linspace(4570, 10, 4570)
+DELTA_T = (T[0] - T[-1]) / len(T)
+
+F10 = C_S * (F1 * np.exp(-(T / TAU1) ** ALPHA1)
+             + F2 * np.exp(-(T / TAU2) ** ALPHA2)
+             + F3 * (4570 - T))
+F = convert_sfd(F10)
+
+HCN_INTERP = hcn_surv_interp.generate_hcn_interpolator(
+                "./data/atmospheric_entry/simulation_results.pkl"
+            )
+MFRAG_INTERP, _, _ = atmos_entry_interp.generate_interpolator(
+                    "./data/atmospheric_entry/simulation_results.pkl"
+                    )
+
+CONCENTRATIONS = ["01mM", "1mM", "10mM", "30mM"]
+
+OUTPUT_DIR = "./data/num_preb_envs_100m"
+# OUTPUT_DIR = "./data/num_preb_envs_100m_21kms"
+# OUTPUT_DIR = "./data/num_preb_envs_100m_DS09"
+# OUTPUT_DIR = "./data/num_preb_envs_100m_Brasser"
+
+
 def read_guokorenaga2020(t, plot=False):
+    """
+    Docstring for read_guokorenaga2020
+    
+    :param t: Description
+    :param plot: Description
+    """
 
     time = np.loadtxt('./data/t_values.dat')
     Mc_25 = np.loadtxt('./data/Mc_25.dat')
@@ -34,7 +94,7 @@ def read_guokorenaga2020(t, plot=False):
                 time,
                 Mc_25
             )
-    
+
     Mc_50 = np.interp(
                 t,
                 time,
@@ -46,7 +106,7 @@ def read_guokorenaga2020(t, plot=False):
                 time,
                 Mc_75
             )
-    
+
     t = t[0] - t
 
     if plot:
@@ -70,33 +130,33 @@ def read_guokorenaga2020(t, plot=False):
 
         plt.gca().invert_xaxis()
 
-        plt.gca().tick_params(axis='both', which='both', top=True, bottom=True, left=True, right=True, direction='in')
+        plt.gca().tick_params(axis='both', which='both', top=True, bottom=True,
+                              left=True, right=True, direction='in')
 
         plt.savefig('./src/figures/GK_MB_comparison.pdf', bbox_inches='tight', format='pdf')
 
         plt.show()
-    
+
     return Mc_50
 
 
-def req_delivery_efficiency(density, molar_mass_hcn, rads):
+def popoulation_survival(t, F, hcn_interp, m_frag_interp, req_eff):
+    """
+    Docstring for popoulation_survival
     
-    volumes = (4/3) * np.pi * (rads ** 3)
-    hcn_concentrations = [1e-4, 1e-3, 10e-3, 30e-3]
-    hcn_amounts = [(conc * density * volumes * molar_mass_hcn / 1e3) for conc in hcn_concentrations]
-    hcn_init = (4 * np.pi * density * (rads ** 3) / 3) * 1e-3
-    
-    return [np.mean(hcn / hcn_init * 100) for hcn in hcn_amounts]
-
-
-def popoulation_survival(t, F, delta_t, hcn_interp, m_frag_interp, req_eff):
+    :param t: Description
+    :param F: Description
+    :param hcn_interp: Description
+    :param m_frag_interp: Description
+    :param req_eff: Description
+    """
 
     N_vals = np.zeros((4, len(t)))
     m = np.pi * 0.6e3 * (100 ** 3) / 6
 
     dF = np.diff(F, prepend=0.0)
-    
-    for i, time in enumerate(t):
+
+    for i, _ in enumerate(t):
 
         nbodies = np.random.poisson(lam=dF[i])
 
@@ -106,25 +166,34 @@ def popoulation_survival(t, F, delta_t, hcn_interp, m_frag_interp, req_eff):
                      (100 <= radii0 * 1e3) & (radii0 * 1e3 <= 1e4) &
                      (11.19e3 <= vels0 * 1e3) & (vels0 * 1e3 <= 70e3))
             queries = np.vstack([angles0[valid], radii0[valid] * 1e3, vels0[valid] * 1e3]).T
-            
+
             HCN_surv = hcn_interp(queries)
             masses = m_frag_interp(queries)
-            
-            mask = masses >= m  
+
+            mask = masses >= m
             for j, req in enumerate(req_eff):
                 N_vals[j, i] = len(masses[mask][HCN_surv[mask] > req])
-    
+
     return N_vals
 
 
-def popoulation_survival_DS09(t, F, delta_t, hcn_interp, m_frag_interp, req_eff):
+def popoulation_survival_DS09(t, F, hcn_interp, m_frag_interp, req_eff):
+    """
+    Docstring for popoulation_survival_DS09
+    
+    :param t: Description
+    :param F: Description
+    :param hcn_interp: Description
+    :param m_frag_interp: Description
+    :param req_eff: Description
+    """
 
     N_vals = np.zeros((4, len(t)))
     m = np.pi * 0.6e3 * (100 ** 3) / 6
 
     dF = np.diff(F, prepend=0.0)
-    
-    for i, time in enumerate(t):
+
+    for i, _ in enumerate(t):
 
         nbodies = np.random.poisson(lam=dF[i])
 
@@ -134,25 +203,34 @@ def popoulation_survival_DS09(t, F, delta_t, hcn_interp, m_frag_interp, req_eff)
                      (100 <= radii0 * 1e3) & (radii0 * 1e3 <= 1e4) &
                      (11.19e3 <= vels0 * 1e3) & (vels0 * 1e3 <= 70e3))
             queries = np.vstack([angles0[valid], radii0[valid] * 1e3, vels0[valid] * 1e3]).T
-            
+
             HCN_surv = hcn_interp(queries)
             masses = m_frag_interp(queries)
-            
-            mask = masses >= m  
+
+            mask = masses >= m
             for j, req in enumerate(req_eff):
                 N_vals[j, i] = len(masses[mask][HCN_surv[mask] > req])
-    
+
     return N_vals
 
 
-def popoulation_survival_21kms(t, F, delta_t, hcn_interp, m_frag_interp, req_eff):
+def popoulation_survival_21kms(t, F, hcn_interp, m_frag_interp, req_eff):
+    """
+    Docstring for popoulation_survival_21kms
+    
+    :param t: Description
+    :param F: Description
+    :param hcn_interp: Description
+    :param m_frag_interp: Description
+    :param req_eff: Description
+    """
 
     N_vals = np.zeros((4, len(t)))
     m = np.pi * 0.6e3 * (100 ** 3) / 6
 
     dF = np.diff(F, prepend=0.0)
-    
-    for i, time in enumerate(t):
+
+    for i, _ in enumerate(t):
 
         nbodies = np.random.poisson(lam=dF[i])
 
@@ -162,21 +240,29 @@ def popoulation_survival_21kms(t, F, delta_t, hcn_interp, m_frag_interp, req_eff
                      (100 <= radii0 * 1e3) & (radii0 * 1e3 <= 1e4) &
                      (11.19e3 <= vels0 * 1e3) & (vels0 * 1e3 <= 70e3))
             queries = np.vstack([angles0[valid], radii0[valid] * 1e3, vels0[valid] * 1e3]).T
-            
+
             HCN_surv = hcn_interp(queries)
             masses = m_frag_interp(queries)
-            
-            mask = masses >= m  
+
+            mask = masses >= m
             for j, req in enumerate(req_eff):
                 N_vals[j, i] = len(masses[mask][HCN_surv[mask] > req])
-    
+
     return N_vals
 
 
-def mass_to_ncom(M_tot, 
+def mass_to_ncom(M_tot,
                  alphas = (1.78, 2.34, 5.78, 3.5),
                  rho = 600,
                  D_edges = (0.1e3, 1e3, 50e3, 150e3, 1000e3)):
+    """
+    Docstring for mass_to_ncom
+    
+    :param M_tot: Description
+    :param alphas: Description
+    :param rho: Description
+    :param D_edges: Description
+    """
 
     alpha1, alpha2, alpha3, alpha4 = alphas
     D0, D1, D2, D3, D4 = D_edges
@@ -212,52 +298,63 @@ def mass_to_ncom(M_tot,
 
 
 def N_comet_brasser():
+    """
+    Docstring for N_comet_brasser
+    """
 
-  t = np.linspace(4570, 10, 4570)
+    t = np.linspace(4570, 10, 4570)
 
-  a1 = 0.1511
-  a2 = 0.6782
-  a3 = 0.2340
+    a1 = 0.1511
+    a2 = 0.6782
+    a3 = 0.2340
 
-  tau1 = 0.919
-  tau2 = 6.440
-  tau3 = 41.82
+    tau1 = 0.919
+    tau2 = 6.440
+    tau3 = 41.82
 
-  M_E = 5.97e24
+    M_E = 5.97e24
 
-  Mc = 4 * M_E * 3.1e-8 * (a1 * np.exp((t - 4500) / tau1) + a2 * np.exp((t - 4500) / tau2) + a3 * np.exp((t - 4500) / tau3))
+    Mc = 4 * M_E * 3.1e-8 * (a1 * np.exp((t - 4500) / tau1) + a2 * np.exp((t - 4500) / tau2) +\
+                             a3 * np.exp((t - 4500) / tau3))
 
-  t[:70] = np.nan
-  Mc[:70] = np.nan
+    t[:70] = np.nan
+    Mc[:70] = np.nan
 
-  dM = np.diff(Mc, prepend=0.0)
+    dM = np.diff(Mc, prepend=0.0)
 
-  N_comets = []
-  for i, time in enumerate(t):
+    N_comets = []
+    for i, _ in enumerate(t):
 
-    lam = np.abs(dM[i])
+        lam = np.abs(dM[i])
 
-    if not np.isfinite(lam):
-        N_comets.append(np.nan)
-        continue
+        if not np.isfinite(lam):
+            N_comets.append(np.nan)
+            continue
 
-    dM_t = np.random.poisson(lam=lam)
+        dM_t = np.random.poisson(lam=lam)
 
-    N_com, Ks = mass_to_ncom(dM_t)
-    
-    N_comets = np.append(N_comets, N_com)
+        N_com, _ = mass_to_ncom(dM_t)
 
-  return t, N_comets
+        N_comets = np.append(N_comets, N_com)
+
+    return t, N_comets
 
 
 def popoulation_survival_brasser(hcn_interp, m_frag_interp, req_eff):
+    """
+    Docstring for popoulation_survival_brasser
+    
+    :param hcn_interp: Description
+    :param m_frag_interp: Description
+    :param req_eff: Description
+    """
 
     t, N_comets = N_comet_brasser()
 
     N_vals = np.zeros((4, len(t)))
     m = np.pi * 0.6e3 * (100 ** 3) / 6
 
-    for i, time in enumerate(t):
+    for i, _ in enumerate(t):
 
         if np.isnan(N_comets[i]):
             continue
@@ -270,40 +367,54 @@ def popoulation_survival_brasser(hcn_interp, m_frag_interp, req_eff):
                      (100 <= radii0 * 1e3) & (radii0 * 1e3 <= 1e4) &
                      (11.19e3 <= vels0 * 1e3) & (vels0 * 1e3 <= 70e3))
             queries = np.vstack([angles0[valid], radii0[valid] * 1e3, vels0[valid] * 1e3]).T
-            
+
             HCN_surv = hcn_interp(queries)
             masses = m_frag_interp(queries)
 
-            mask = masses >= m  
+            mask = masses >= m
             for j, req in enumerate(req_eff):
 
                 N_vals[j, i] = len(masses[mask][HCN_surv[mask] > req])
 
-    return N_vals 
+    return N_vals
 
 
 def load_simulation_data(concentration):
+    """
+    Docstring for load_simulation_data
+    
+    :param concentration: Description
+    """
 
     filename = f"{OUTPUT_DIR}/N1_{concentration}.h5"
-    
+    print(filename)
+
     with h5py.File(filename, 'r') as f:
         data = f['N'][:]
-    
+
     return np.vstack(data) if data.ndim == 3 else data
 
 
 def load_simulation_data_brasser(concentration):
+    """
+    Docstring for load_simulation_data_brasser
+    
+    :param concentration: Description
+    """
 
     filename = f"{OUTPUT_DIR}/N1_{concentration}.h5"
-    
+
     with h5py.File(filename, 'r') as f:
         data = f['N'][:]
-    
+
     data = np.vstack(data) if data.ndim == 3 else data
     return data[:, ::-1]
 
 
 def plot_combined():
+    """
+    Docstring for plot_combined
+    """
 
     t = np.linspace(4.57, 0, 4570)[1:]
 
@@ -323,7 +434,7 @@ def plot_combined():
               r'$c_{\rm HCN} > 30\,{\rm mM}$']
 
     all_runs = {}
-    for i, conc in enumerate(concentrations):
+    for _, conc in enumerate(concentrations):
 
         sim = load_simulation_data(conc)
         # need to use mulation_data_Brasser for brasser simulations...
@@ -356,16 +467,13 @@ def plot_combined():
 
     plt.axhline(1, c='tab:gray', alpha=0.2, zorder=0)
 
-    # plt.xlim(3.5, 4.5)
     plt.ylim(1e-4, 1e0)
-
-    # plt.xticks([3.5, 3.7, 3.9, 4.1, 4.3, 4.5])
 
     plt.yscale('log')
 
     plt.xlabel('Time [Gya]', fontsize=13)
     plt.ylabel('Number of impacts per Myr', fontsize=13)
-    
+
     plt.minorticks_on()
 
     plt.legend(frameon=False, fontsize=11, loc='upper left')
@@ -411,7 +519,7 @@ def plot_combined():
 
     plt.xlabel('Time [Gya]', fontsize=13)
     plt.ylabel('Cumulative number of impacts', fontsize=13)
-    
+
     plt.minorticks_on()
 
     plt.legend(frameon=False, fontsize=11, loc='upper right')
@@ -421,43 +529,15 @@ def plot_combined():
     plt.show()
 
 
-# *************** Precompute constants and interpolators once ***************
-DENSITY = 0.6e3
-MOLAR_MASS_HCN = 27.03
-RADS = np.logspace(2, 4, 1000)
-REQ_EFF = req_delivery_efficiency(DENSITY, MOLAR_MASS_HCN, RADS)
-HCN_CONC = 1e-3
-
-C_S = 1./6.
-F1, F2, F3 = 6.5e3, 6.5e3, 4e-3
-ALPHA1, ALPHA2 = 1, 0.44
-TAU1, TAU2 = 7, 13
-
-T = np.linspace(4570, 10, 4570)
-DELTA_T = (T[0] - T[-1]) / len(T)
-
-F10 = C_S * (F1 * np.exp(-(T / TAU1) ** ALPHA1)
-             + F2 * np.exp(-(T / TAU2) ** ALPHA2)
-             + F3 * (4570 - T))
-F = convert_sfd(F10)
-
-HCN_INTERP = hcn_surv_interp.generate_hcn_interpolator("./data/atmospheric_entry/simulation_results.pkl")
-MFRAG_INTERP, _, _ = atmos_entry_interp.generate_interpolator("./data/atmospheric_entry/simulation_results.pkl")
-
-CONCENTRATIONS = ["01mM", "1mM", "10mM", "30mM"]
-
-OUTPUT_DIR = "./data/num_preb_envs_100m"
-# OUTPUT_DIR = "./data/num_preb_envs_100m_21kms"
-# OUTPUT_DIR = "./data/num_preb_envs_100m_DS09"
-# OUTPUT_DIR = "./data/num_preb_envs_100m_Brasser"
-
-
 def avg_hcn_surv():
+    """
+    Docstring for avg_hcn_surv
+    """
 
     m = np.pi * 0.6e3 * (100 ** 3) / 6
 
     nbodies = int(F[-1])
-    
+
     vels0, radii0, angles0 = get_population(nbodies)
     masses0 = np.pi * 0.6e3 * ((radii0 * 1e3) ** 3) / 6
     tot_comet_mass = np.sum(masses0)
@@ -466,13 +546,13 @@ def avg_hcn_surv():
             (100 <= radii0 * 1e3) & (radii0 * 1e3 <= 1e8) &
             (11.19e3 <= vels0 * 1e3) & (vels0 * 1e3 <= 70e3))
     queries = np.vstack([angles0[valid], radii0[valid] * 1e3, vels0[valid] * 1e3]).T
-    
+
     HCN_surv = HCN_INTERP(queries)
     masses = MFRAG_INTERP(queries)
 
     masses = masses[~np.isnan(HCN_surv)]
     HCN_surv = HCN_surv[~np.isnan(HCN_surv)]
-    
+
     mask = masses >= m
 
     hcn_delivered = np.sum(masses[mask] * HCN_surv[mask] * HCN_CONC / 100)
@@ -482,6 +562,9 @@ def avg_hcn_surv():
 
 
 def population_statistics():
+    """
+    Docstring for population_statistics
+    """
 
     n_trials = 10000
     tot_masses = np.empty(n_trials)
@@ -501,8 +584,8 @@ def population_statistics():
     print(f"HCN Delivered: mu={mu_hcn:.4f}, std={std_hcn:.4f}")
     print(f"Average HCN survival: mu={mu_hcn_frac:.4f}, std={std_hcn_frac:.4f}")
 
-    x = np.linspace(min(tot_masses / 1e18), max(tot_masses / 1e18), 1000)
-    pdf_mass = scipy.stats.norm.pdf(x, mu_mass, std_mass)
+    # x = np.linspace(min(tot_masses / 1e18), max(tot_masses / 1e18), 1000)
+    # pdf_mass = scipy.stats.norm.pdf(x, mu_mass, std_mass)
 
     _ = plt.figure(figsize=set_size('thesis'))
 
@@ -518,8 +601,8 @@ def population_statistics():
 
     plt.close()
 
-    x = np.linspace(min(hcn_delivered / 1e13), max(hcn_delivered / 1e13), 1000)
-    pdf_hcn = scipy.stats.norm.pdf(x, mu_hcn, std_hcn)
+    # x = np.linspace(min(hcn_delivered / 1e13), max(hcn_delivered / 1e13), 1000)
+    # pdf_hcn = scipy.stats.norm.pdf(x, mu_hcn, std_hcn)
 
     _ = plt.figure(figsize=set_size('thesis'))
 
@@ -548,9 +631,12 @@ def population_statistics():
 
     plt.close()
 
-    ks_stat_mass, p_mass = scipy.stats.kstest(tot_masses / 1e18, 'norm', args=(mu_mass, std_mass))
-    ks_stat_hcn, p_hcn = scipy.stats.kstest(hcn_delivered / 1e13, 'norm', args=(mu_hcn, std_hcn))
-    ks_stat_hcn_frac, p_hcn_frac = scipy.stats.kstest(hcn_frac, 'norm', args=(mu_hcn_frac, std_hcn_frac))
+    ks_stat_mass, p_mass = scipy.stats.kstest(tot_masses / 1e18, 'norm',
+                                              args=(mu_mass, std_mass))
+    ks_stat_hcn, p_hcn = scipy.stats.kstest(hcn_delivered / 1e13, 'norm',
+                                            args=(mu_hcn, std_hcn))
+    ks_stat_hcn_frac, p_hcn_frac = scipy.stats.kstest(hcn_frac, 'norm',
+                                                      args=(mu_hcn_frac, std_hcn_frac))
 
     print(f"Total Mass KS test: D={ks_stat_mass:.4f}, p={p_mass:.4f}")
     print(f"HCN Delivered KS test: D={ks_stat_hcn:.4f}, p={p_hcn:.4f}")
@@ -562,6 +648,11 @@ def population_statistics():
 
 
 def run_simulation(num_runs):
+    """
+    Docstring for run_simulation
+    
+    :param num_runs: Description
+    """
 
     files = {
         conc: h5py.File(f"{OUTPUT_DIR}/N1_{conc}.h5", 'a')
@@ -583,13 +674,13 @@ def run_simulation(num_runs):
         print(f"{round(100 * run_id / num_runs, 3)}%\r", end='')
 
         N_vals = popoulation_survival(
-            T, F, DELTA_T, HCN_INTERP, MFRAG_INTERP, REQ_EFF
+            T, F, HCN_INTERP, MFRAG_INTERP, REQ_EFF
         )
         # N_vals = popoulation_survival_21kms(
-        #     T, F, DELTA_T, HCN_INTERP, MFRAG_INTERP, REQ_EFF
+        #     T, F, HCN_INTERP, MFRAG_INTERP, REQ_EFF
         # )
         # N_vals = popoulation_survival_DS09(
-        #     T, F, DELTA_T, HCN_INTERP, MFRAG_INTERP, REQ_EFF
+        #     T, F, HCN_INTERP, MFRAG_INTERP, REQ_EFF
         # )
         # N_vals = popoulation_survival_brasser(
         #     HCN_INTERP, MFRAG_INTERP, REQ_EFF
@@ -606,168 +697,17 @@ def run_simulation(num_runs):
         f.close()
 
 
-def vertical_gradient_span(ax, xmin, xmax, color, alpha_top=0.2, zorder=0, flip=False):
-
-    rgb = matplotlib.colors.to_rgb(color)
-    
-    trans = matplotlib.transforms.blended_transform_factory(ax.transData, ax.transAxes)
-
-    gradient = np.ones((256, 1, 4))
-    gradient[..., :3] = rgb
-    if not flip:
-        gradient[..., 3] = np.linspace(0, alpha_top, 256)[:, None]
-        ax.imshow(gradient,
-                extent=(xmin, xmax, 0.2, 1),
-                aspect='auto',
-                origin='lower',
-                transform=trans,
-                zorder=zorder,
-                rasterized=True)
-
-    else:
-        gradient[..., 3] = np.linspace(alpha_top, 0, 256)[:, None]
-        ax.imshow(gradient,
-              extent=(xmin, xmax, 0., 1),
-              aspect='auto',
-              origin='lower',
-              transform=trans,
-              zorder=zorder,
-              rasterized=True)
-
-
-def graphic_mainplot():
-
-    t = np.linspace(4.57, 0, 4570)[1:]
-    Mc_50 = read_guokorenaga2020(t)
-    
-    f_crust_lo = 0.16 * 0.41 * t
-    f_crust_hi = np.maximum(Mc_50 * 0.41, 0.0016)
-    # this assumes an oceanic island landmass at early times following Bada & Korenaga 2021 (Life)
-    f_crust = f_crust_lo
-    
-    conc = "10mM"
-    color = 'tab:blue'
-    label = r'$c_{\rm HCN} > 10\,{\rm mM}$'
-    all_runs = {}
-    sim = load_simulation_data(conc)
-    all_runs[conc] = sim[:, 1:]
-    mask = (4.57 - t >= 3.5) & (4.57 - t <= 4.55)
-    # Nesvorny chronology expression should not be used for t \lesssim 10Myr
-
-    x_vals = 4.57 - t[mask]
-    runs = all_runs[conc]
-    
-    mean_curve = runs.mean(axis=0)
-
-    num_events = np.random.poisson(runs[:, mask] * f_crust[mask])
-
-    totals = num_events.sum(axis=1)  # total impacts per run
-    print(np.median(totals), len(totals[totals == 0]) / len(totals))
-
-    mask = (num_events > 0)
-    n_runs = mask.shape[0]
-    has_event = mask.any(axis=1)
-
-    last_idx_rev = np.argmax(mask[:, ::-1], axis=1)
-    last_idx = mask.shape[1] - 1 - last_idx_rev
-
-    last_time = np.full(n_runs, np.nan)
-    last_time[has_event] = x_vals[last_idx[has_event]]
-
-    n_with = np.sum(has_event)
-
-    _ = plt.figure(figsize=set_size('thesis'))
-    ax = plt.gca()
-
-    tmin, tmax = 3.5, 4.55
-    t_grid = np.linspace(tmin, tmax, 400)
-
-    frac_uncond = np.array([np.sum(last_time <= tt) / n_runs for tt in t_grid])
-    level = 0.05
-    t_10pct = np.interp(level, frac_uncond, t_grid)
-    print(f'In ≤{100*level:.0f}% of simulations, the final successful cometary impacts occurs later than {t_10pct:.2f}Gya')
-
-    n_bins = 100
-    bin_edges = np.linspace(tmin, tmax, n_bins + 1)
-
-    if n_runs > 0:
-        frac_right = np.array([np.sum(last_time <= edge) / n_runs for edge in bin_edges[1:]])
-    else:
-        frac_right = np.zeros(n_bins)
-
-    bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
-    bar_width = bin_edges[1] - bin_edges[0]
-
-    ax.bar(bin_centers, frac_right, width=bar_width,
-        align='center', color='tab:red', alpha=0.25, edgecolor='none', linewidth=0.,
-        label='Frac. of sims with last impact ≤ t (CDF)')
-
-    ax.set_xlabel(r'Time $t$ [Gya]', fontsize=13)
-    ax.set_ylabel('Fraction of simulations with final\n successful impact later than $t$', fontsize=13, color='tab:red')
-    ax.tick_params(axis='y', colors='tab:red')
-
-    ax.set_ylim(0, 1)
-
-    ax.set_xlim(3.5, 4.55)
-    ax.set_xticks([4.55, 4.5, 4.3, 4.1, 3.9, 3.7, 3.5], labels=['', 4.5, 4.3, 4.1, 3.9, 3.7, 3.5])
-    ax.invert_xaxis()
-
-    ax.minorticks_on()
-    ax.xaxis.set_minor_locator(matplotlib.ticker.LinearLocator(numticks=22))
-    ax.tick_params(axis='both', which='both', top=True, bottom=True, left=True, right=True, direction='in')
-
-    median_last = np.nanmedian(last_time[has_event])
-    p_lo, p_hi = np.nanpercentile(last_time[has_event], [16, 84])
-
-    lower_err = median_last - p_lo
-    upper_err = p_hi - median_last
-    ax.axvline(median_last, color='tab:red', linestyle='-', lw=1)
-
-    print(median_last, lower_err, upper_err)
-
-    ax2 = ax.twinx()
-
-    ax2.plot(4.57 - t, mean_curve * f_crust, color='tab:blue')
-    ax2.set_ylabel('Number of comets delivering\n $>10\\,$mM HCN per Myr', fontsize=13, color='tab:blue', rotation=-90, labelpad=30)
-    ax2.tick_params(axis='y', colors='tab:blue')
-
-    ax2.set_yscale('log')
-    ax2.set_ylim(bottom=6e-5, top=1e-2)
-
-    ax2.set_xlim(ax.get_xlim())
-
-    vertical_gradient_span(ax2, 3.5, 3.65, 'tab:brown', alpha_top=0.2, zorder=0, flip=False)
-    ax2.text(3.581, 1e-3, "Stromatolites", rotation=90)
-
-    vertical_gradient_span(ax2, 3.67, 3.73, 'tab:purple', alpha_top=0.2, zorder=0, flip=False)
-    ax2.text(3.712, 6e-4, r"$^{13}\,$C depletion in graphite", rotation=90)
-
-    vertical_gradient_span(ax2, 3.8, 3.85, 'tab:gray', alpha_top=0.2, zorder=0, flip=False)
-    ax2.text(3.842, 8e-4, r"$^{13}\,$C depletion in apatite", rotation=90)
-
-    vertical_gradient_span(ax2, 4.09, 4.33, 'tab:orange', alpha_top=0.2, zorder=0, flip=False)
-
-    plt.text(4.20, 2.5e-3, "Phylogeny", rotation=90)
-    plt.text(4.24, 3.1e-3, "LUCA", rotation=90)
-
-    ax2.text(4.445, 8e-5, "most probable timing", rotation=90, color='tab:red')
-
-    ax2.tick_params(axis='both', which='both', top=True, bottom=True, left=False, right=True, direction='in')
-
-    # plt.savefig('./src/figures/main_fig.pdf', bbox_inches='tight', format='pdf')
-
-    plt.show()
-
-
 def MB_GK_comparison():
+    """
+    Docstring for MB_GK_comparison
+    """
 
     t = np.linspace(4.57, 0, 4570)[1:]
     Mc_50 = read_guokorenaga2020(t)
-    
+
     f_crust_lo = 0.16 * 0.41 * t
     f_crust_hi = np.maximum(Mc_50 * 0.41, 0.0016)
     # this assumes an oceanic island landmass at early times following Bada & Korenaga 2021 (Life)
-    f_crust = f_crust_lo
 
     mask = (4.57 - t >= 3.5) & (4.57 - t <= 4.55)
 
@@ -777,17 +717,17 @@ def MB_GK_comparison():
               r'$c_{\rm HCN} > 1\,{\rm mM}$',
               r'$c_{\rm HCN} > 10\,{\rm mM}$',
               r'$c_{\rm HCN} > 30\,{\rm mM}$']
-    
+
     all_runs = {}
-    for i, conc in enumerate(concentrations):
+    for _, conc in enumerate(concentrations):
 
         sim = load_simulation_data(conc)
 
         all_runs[conc] = sim[:, 1:]
         print(f"conc={conc}", f"num_runs={np.shape(all_runs[conc])[0]}")
-    
+
     print('c_HCN |', 'Guo & Korenaga (2020) |', 'McCulloch & Bennett (1993)')
-    for conc, color, label in zip(concentrations, colors, labels):
+    for conc, _, _ in zip(concentrations, colors, labels):
         runs = all_runs[conc]
 
         num_events_hi = np.random.poisson(runs[:, mask] * f_crust_hi[mask])
@@ -795,23 +735,21 @@ def MB_GK_comparison():
 
         totals_hi = num_events_hi.sum(axis=1)  # total impacts per run
         totals_lo = num_events_lo.sum(axis=1)  # total impacts per run
-        
+
         print(conc, np.median(totals_hi), np.median(totals_lo))
 
 
 def successful_impacts_hist():
+    """
+    Docstring for successful_impacts_hist
+    """
 
     t = np.linspace(4.57, 0, 4570)[1:]
-    Mc_50 = read_guokorenaga2020(t)
-    
+
     f_crust_lo = 0.16 * 0.41 * t
-    f_crust_hi = np.maximum(Mc_50 * 0.41, 0.0016)
-    # this assumes an oceanic island landmass at early times following Bada & Korenaga 2021 (Life)
     f_crust = f_crust_lo
-    
+
     conc = "10mM"
-    color = 'tab:blue'
-    label = r'$c_{\rm HCN} > 10\,{\rm mM}$'
     all_runs = {}
     sim = load_simulation_data(conc)
     all_runs[conc] = sim[:, 1:]
@@ -838,7 +776,7 @@ def successful_impacts_hist():
        width=0.7, align='center',
        edgecolor='black', linewidth=0.6,
        color=cm.bamako(0.3), alpha=0.75)
-    
+
     plt.xlim(-0.5, 6.5)
 
     plt.ylabel(r'Fraction of Monte Carlo realisations', fontsize=13)
@@ -846,7 +784,8 @@ def successful_impacts_hist():
 
     plt.minorticks_on()
 
-    plt.gca().tick_params(axis='both', which='both', top=True, bottom=True, left=True, right=True, direction='in')
+    plt.gca().tick_params(axis='both', which='both', top=True, bottom=True,
+                          left=True, right=True, direction='in')
 
     # plt.savefig('./src/figures/successful_impacts_bar.pdf', bbox_inches='tight', format='pdf')
 
@@ -857,6 +796,9 @@ def successful_impacts_hist():
 
 
 def total_comet_mass_acc():
+    """
+    Docstring for total_comet_mass_acc
+    """
 
     nbodies = int(F[-1])
 
@@ -869,14 +811,14 @@ def total_comet_mass_acc():
 
         _, radii0, _ = get_population(nbodies)
         masses0 = np.pi * 0.6e3 * ((radii0 * 1e3) ** 3) / 6
-        
+
         tot_masses[i] = np.sum(masses0)
 
     mu_mass, std_mass = scipy.stats.norm.fit(tot_masses / 1e18)
     print(f"Total cometary mass: mu={mu_mass:.4f}, std={std_mass:.4f}")
 
-    x = np.linspace(min(tot_masses / 1e18), max(tot_masses / 1e18), 1000)
-    pdf_mass = scipy.stats.norm.pdf(x, mu_mass, std_mass)
+    # x = np.linspace(min(tot_masses / 1e18), max(tot_masses / 1e18), 1000)
+    # pdf_mass = scipy.stats.norm.pdf(x, mu_mass, std_mass)
 
     _ = plt.figure(figsize=set_size('thesis'))
 
@@ -900,15 +842,12 @@ def total_comet_mass_acc():
 
 if __name__ == "__main__":
 
-    if False:
-        
-        num_runs = 100000
-        run_simulation(num_runs)
-    
-    graphic_mainplot()
+    num_runs = 100000
+    run_simulation(num_runs)
+
     # successful_impacts_hist()
 
-    MB_GK_comparison()
+    # MB_GK_comparison()
 
     # read_guokorenaga2020(np.linspace(4.57, 0, 4500)[1:], plot=True)
     # population_statistics()
