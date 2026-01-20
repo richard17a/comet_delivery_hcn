@@ -1,1 +1,2 @@
 *.h5 filter=lfs diff=lfs merge=lfs -text
+data/sfd_evolution/** filter=lfs diff=lfs merge=lfs -text
