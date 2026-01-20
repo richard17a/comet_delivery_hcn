@@ -8,3 +8,5 @@ astropy==5.2.2
 h5py==3.9.0
 pandas==2.0.3
 tqdm==4.66.1
+numba==0.58.1
+seaborn==0.13.0
