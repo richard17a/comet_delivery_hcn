@@ -4,3 +4,7 @@ pylint==2.16.2
 scipy==1.7.3
 cmcrameri==1.7
 atmosentry==0.0.7
+astropy==6.0.0
+h5py==3.9.0
+pandas==2.1.4
+tqdm==4.66.1
