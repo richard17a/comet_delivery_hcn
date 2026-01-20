@@ -1,5 +1,3 @@
-# pylint: disable=R0914
-
 """
 Docstring for atmos_entry_interp
 """

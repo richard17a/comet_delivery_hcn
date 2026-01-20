@@ -1,5 +1,3 @@
-# pylint: disable=E1101,C0103,R0914,R0915
-
 """
 This script plots the cumulative size-frequency distribution (SFD) of comets entering the inner
 Solar System subject to disruption via rotational instability.

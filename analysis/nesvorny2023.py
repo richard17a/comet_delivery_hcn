@@ -1,5 +1,3 @@
-# pylint: disable=C0103,R0914,E1101,W0718,R1736
-
 """
 Docstring
 """

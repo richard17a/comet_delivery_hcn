@@ -1,5 +1,3 @@
-# pylint: disable=C0103,E1101,R0914,R0801
-
 """
 Docstring for figureS3_S4
 """

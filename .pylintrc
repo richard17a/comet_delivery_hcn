@@ -1,0 +1,11 @@
+[MAIN]
+ignore=paper
+
+[DESIGN]
+max-locals = 50
+max-args = 20
+max-positional-arguments = 20
+max-attributes = 50
+
+[MESSAGES CONTROL]
+disable=E1101,C0103,R0914,R0915,W0012,R0913,R0917,W0621,R0801,E0606,R1736,E1133,W0718

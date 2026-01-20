@@ -1,5 +1,3 @@
-# pylint: disable=C0103,E0606
-
 """
 Docstring for parametrised_chemistry
 

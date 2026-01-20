@@ -1,5 +1,3 @@
-# pylint: disable=R0914,C0103,R0915,R0801
-
 """
 Docstring for hcn_surv_interp
 """

@@ -1,5 +1,3 @@
-# pylint: disable=C0103,E1101,W0621,R0914,R0915,R0913,R0917,E0606
-
 """
 Docstring for init_params
 """

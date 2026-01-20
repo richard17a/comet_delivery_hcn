@@ -1,5 +1,3 @@
-# pylint: disable=C0103,E1101,R0913,R0917,R0914,W0621,R0915,R0801
-
 """
 Docstring for num_preb_envs
 """

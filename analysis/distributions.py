@@ -1,5 +1,3 @@
-# pylint: disable=R0913,R0914,E1133,R0917
-
 """
 Generate angle, velocity and size distributions for comet imapcts
 """

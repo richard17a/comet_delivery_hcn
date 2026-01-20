@@ -1,5 +1,3 @@
-# pylint: disable=C0103
-
 """
 Docstring
 
