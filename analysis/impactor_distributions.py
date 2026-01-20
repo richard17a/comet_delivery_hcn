@@ -1,18 +1,12 @@
-# pylint: disable=E1101,R0914,R0915,E0606
+# pylint: disable=E1101,R0914,R0915,E0606,C0103
 
 """
 Docstring for figure2
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib
-from cmcrameri import cm
 import distributions
 import atmos_entry_interp
-
-matplotlib.rcParams['mathtext.fontset'] = 'cm'
-matplotlib.rcParams['font.family'] = 'STIXGeneral'
 
 
 def get_population(npoints):
@@ -39,6 +33,11 @@ def get_population(npoints):
 
 
 def get_population_DS09(npoints):
+    """
+    Docstring for get_population_DS09
+    
+    :param npoints: Description
+    """
 
     radii = distributions.generate_radii(npoints, alpha1=1.78, alpha2=2.34, alpha3=5.74, seed=42)
     # NB mean = sqrt(28.2 **2 - 11.19 **2)
@@ -57,6 +56,11 @@ def get_population_DS09(npoints):
 
 
 def get_population_21kms(npoints):
+    """
+    Docstring for get_population_21kms
+    
+    :param npoints: Description
+    """
 
     radii = distributions.generate_radii(npoints, seed=42)
     # NB mean = sqrt(22 **2 - 11.19 **2)
@@ -75,6 +79,11 @@ def get_population_21kms(npoints):
 
 
 def get_population_Mars(npoints):
+    """
+    Docstring for get_population_Mars
+    
+    :param npoints: Description
+    """
 
     radii = distributions.generate_radii(npoints, seed=42, r_min=0.1)
     vels = distributions.generate_velocities(npoints, mean=19.0, std_dev=5., v_esc=5.03)
@@ -92,6 +101,11 @@ def get_population_Mars(npoints):
 
 
 def get_population_Venus(npoints):
+    """
+    Docstring for get_population_Venus
+    
+    :param npoints: Description
+    """
 
     radii = distributions.generate_radii(npoints, seed=42)
     vels = distributions.generate_velocities(npoints, mean=35.2, std_dev=5., v_esc=10.36)

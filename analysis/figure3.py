@@ -1,3 +1,5 @@
+# pylint: disable=R0913,R0914,R0915,R0917,R0801
+
 """
 Docstring for figure3
 """
@@ -13,9 +15,20 @@ matplotlib.rcParams['font.family'] = 'STIXGeneral'
 
 
 def vertical_gradient_span(ax, xmin, xmax, color, alpha_top=0.2, zorder=0, flip=False):
+    """
+    Docstring for vertical_gradient_span
+    
+    :param ax: Description
+    :param xmin: Description
+    :param xmax: Description
+    :param color: Description
+    :param alpha_top: Description
+    :param zorder: Description
+    :param flip: Description
+    """
 
     rgb = matplotlib.colors.to_rgb(color)
-    
+
     trans = matplotlib.transforms.blended_transform_factory(ax.transData, ax.transAxes)
 
     gradient = np.ones((256, 1, 4))
@@ -42,14 +55,15 @@ def vertical_gradient_span(ax, xmin, xmax, color, alpha_top=0.2, zorder=0, flip=
 
 
 def main():
+    """
+    Docstring for main
+    """
 
     t = np.linspace(4.57, 0, 4570)[1:]
-    
+
     f_crust = 0.16 * 0.41 * t
-    
+
     conc = "10mM"
-    color = 'tab:blue'
-    label = r'$c_{\rm HCN} > 10\,{\rm mM}$'
     all_runs = {}
     sim = load_simulation_data(conc)
     all_runs[conc] = sim[:, 1:]
@@ -57,7 +71,7 @@ def main():
 
     x_vals = 4.57 - t[mask]
     runs = all_runs[conc]
-    
+
     mean_curve = runs.mean(axis=0)
 
     num_events = np.random.poisson(runs[:, mask] * f_crust[mask])
@@ -65,7 +79,7 @@ def main():
     totals = num_events.sum(axis=1)  # total impacts per run
     print(np.median(totals), len(totals[totals == 0]) / len(totals))
 
-    mask = (num_events > 0)
+    mask = num_events > 0
     n_runs = mask.shape[0]
     has_event = mask.any(axis=1)
 
@@ -84,7 +98,8 @@ def main():
     frac_uncond = np.array([np.sum(last_time <= tt) / n_runs for tt in t_grid])
     level = 0.05
     t_10pct = np.interp(level, frac_uncond, t_grid)
-    print(f'In ≤{100*level:.0f}% of simulations, the final successful cometary impacts occurs later than {t_10pct:.2f}Gya')
+    print(f'In ≤{100*level:.0f}% of simulations, the final successful cometary\
+            impacts occurs later than {t_10pct:.2f}Gya')
 
     n_bins = 100
     bin_edges = np.linspace(tmin, tmax, n_bins + 1)
@@ -102,18 +117,21 @@ def main():
         label='Frac. of sims with last impact ≤ t (CDF)')
 
     ax.set_xlabel(r'Time $t$ [Gya]', fontsize=13)
-    ax.set_ylabel('Fraction of simulations with final\n successful impact later than $t$', fontsize=13, color='tab:red')
+    ax.set_ylabel('Fraction of simulations with final\n successful impact later than $t$',
+                  fontsize=13, color='tab:red')
     ax.tick_params(axis='y', colors='tab:red')
 
     ax.set_ylim(0, 1)
 
     ax.set_xlim(3.5, 4.55)
-    ax.set_xticks([4.55, 4.5, 4.3, 4.1, 3.9, 3.7, 3.5], labels=['', 4.5, 4.3, 4.1, 3.9, 3.7, 3.5])
+    ax.set_xticks([4.55, 4.5, 4.3, 4.1, 3.9, 3.7, 3.5],
+                  labels=['', 4.5, 4.3, 4.1, 3.9, 3.7, 3.5])
     ax.invert_xaxis()
 
     ax.minorticks_on()
     ax.xaxis.set_minor_locator(matplotlib.ticker.LinearLocator(numticks=22))
-    ax.tick_params(axis='both', which='both', top=True, bottom=True, left=True, right=True, direction='in')
+    ax.tick_params(axis='both', which='both', top=True, bottom=True,
+                   left=True, right=True, direction='in')
 
     median_last = np.nanmedian(last_time[has_event])
     p_lo, p_hi = np.nanpercentile(last_time[has_event], [16, 84])
@@ -127,7 +145,8 @@ def main():
     ax2 = ax.twinx()
 
     ax2.plot(4.57 - t, mean_curve * f_crust, color='tab:blue')
-    ax2.set_ylabel('Number of comets delivering\n $>10\\,$mM HCN per Myr', fontsize=13, color='tab:blue', rotation=-90, labelpad=30)
+    ax2.set_ylabel('Number of comets delivering\n $>10\\,$mM HCN per Myr',
+                   fontsize=13, color='tab:blue', rotation=-90, labelpad=30)
     ax2.tick_params(axis='y', colors='tab:blue')
 
     ax2.set_yscale('log')
@@ -151,7 +170,8 @@ def main():
 
     ax2.text(4.445, 8e-5, "most probable timing", rotation=90, color='tab:red')
 
-    ax2.tick_params(axis='both', which='both', top=True, bottom=True, left=False, right=True, direction='in')
+    ax2.tick_params(axis='both', which='both', top=True, bottom=True,
+                    left=False, right=True, direction='in')
 
     # plt.savefig('./src/figures/main_fig.pdf', bbox_inches='tight', format='pdf')
 

@@ -8,9 +8,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 from cmcrameri import cm
-import distributions
-import atmos_entry_interp
 from utils import set_size
+from impactor_distributions import get_population, calc_surface_distributions
 
 matplotlib.rcParams['mathtext.fontset'] = 'cm'
 matplotlib.rcParams['font.family'] = 'STIXGeneral'
