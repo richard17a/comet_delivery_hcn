@@ -67,7 +67,11 @@ OUTPUT_DIR = "./data/num_preb_envs_100m"
 def read_guokorenaga2020(t):
     """
     Docstring for read_guokorenaga2020
-    
+
+    The [Mc_25,Mc_50,Mc_75].dat files were created using the matlab script
+    provided in the Supplementary Information of Guo and Korenega (2020) 
+    (https://doi.org/10.1126/sciadv.aaz6234).
+
     :param t: Description
     :param plot: Description
     """
