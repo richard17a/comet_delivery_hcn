@@ -171,7 +171,7 @@ def main():
     ax2.tick_params(axis='both', which='both', top=True, bottom=True,
                     left=False, right=True, direction='in')
 
-    # plt.savefig('./src/figures/main_fig.pdf', bbox_inches='tight', format='pdf')
+    # plt.savefig('./figures/main_fig.pdf', bbox_inches='tight', format='pdf')
 
     plt.show()
 

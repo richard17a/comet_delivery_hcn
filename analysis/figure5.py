@@ -38,20 +38,16 @@ def horizontal_gradient_span(ax, ymin, ymax, color,
     This function saves & restores axis limits to avoid autoscaling changes.
     """
 
-    # sanity checks
     if not (0 <= xmin_frac <= 1 and 0 <= xmax_frac <= 1):
         raise ValueError("xmin_frac/xmax_frac must be in [0,1] (axes fraction).")
 
-    # Save original limits so we can restore them after plotting the image
     xlim = ax.get_xlim()
     ylim = ax.get_ylim()
 
-    # correct transform: x in axes fraction, y in data coords
     trans = matplotlib.transforms.blended_transform_factory(ax.transAxes, ax.transData)
 
     rgb = matplotlib.colors.to_rgb(color)
 
-    # Create an image with shape (1, nx, 4) so alpha varies horizontally (columns)
     gradient = np.ones((1, nx, 4), dtype=float)
     gradient[0, :, :3] = rgb
 
@@ -62,18 +58,16 @@ def horizontal_gradient_span(ax, ymin, ymax, color,
 
     gradient[0, :, 3] = alpha_vals
 
-    # Draw image: extent = (x0_axes_frac, x1_axes_frac, y0_data, y1_data)
     im = ax.imshow(gradient,
                     extent=(xmin_frac, xmax_frac, ymin, ymax),
                     origin='lower',
                     aspect='auto',
-                    interpolation='nearest',   # preserves alpha at each column
+                    interpolation='nearest',
                     transform=trans,
                     zorder=zorder,
                     clip_on=clip_on,
                     rasterized=rasterized)
 
-    # Restore original axis limits to prevent autoscale from shifting text/axes
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
 
@@ -158,7 +152,7 @@ def main():
     plt.gca().tick_params(axis='both', which='both', top=True, bottom=True,
                         left=True, right=True, direction='in')
 
-    plt.savefig('./figures/ool_timescale_contours.pdf', bbox_inches='tight', format='pdf')
+    # plt.savefig('./figures/ool_timescale_contours.pdf', bbox_inches='tight', format='pdf')
 
     plt.show()
 

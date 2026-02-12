@@ -1,13 +1,13 @@
 """
-Module Docstring
+Docstring for figureS8
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 from cmcrameri import cm
-from astropy.io.votable import parse_single_table
 from utils import set_size
+from num_preb_envs import load_simulation_data
 
 matplotlib.rcParams['mathtext.fontset'] = 'cm'
 matplotlib.rcParams['font.family'] = 'STIXGeneral'
@@ -18,108 +18,67 @@ def main():
     Docstring for main
     """
 
-    table = parse_single_table("./data/PLANETS.vot").to_table()
+    t = np.linspace(4.57, 0, 4570)[1:]
 
-    R_pl = table['Planet Radius [Rjup]'] * 11.2
-    R_pl_hi = table['Planet Radius - Upper Unc [Rjup]'] * 11.2
-    R_pl_lo = table['Planet Radius - Lower Unc [Rjup]'] * 11.2
+    f_crust = 0.16 * 0.41 * t
 
-    M_pl = table['Planet Mass [Mjup]'] * 317.8
-    M_pl_lo = table['Planet Mass - Lower Unc [Mjup]'] * 317.8
-    M_pl_hi = table['Planet Mass - Upper Unc [Mjup]'] * 317.8
+    concs = ["01mM", "1mM", "10mM"]
+    labels = [r'$c_{\rm HCN} = 0.1~{\rm mM}$', r'$c_{\rm HCN} = 1.0~{\rm mM}$', r'$c_{\rm HCN} = 10.0~{\rm mM}$']
+    colors = [cm.bamako(0.2), cm.bamako(0.5), cm.bamako(0.8)]
 
-    A1, b1 = 1.02, 0.27
-    A2, b2 = 0.56, 0.67
-    A3, b3 = 18.6, -0.06
-    M_b1 = 4.37
-    M_b2 = 127.0
+    _ = plt.figure(figsize=set_size('thesis'))
+    ax = plt.gca()
 
-    G = 6.67e-11
-    M_E = 5.97e24
-    R_E = 6371e3
+    for conc, label, col in zip(concs, labels, colors):
 
-    Ms = np.logspace(-2, 2, 1000)
+        all_runs = {}
+        sim = load_simulation_data(conc)
+        all_runs[conc] = sim[:, 1:]
+        mask = (4.57 - t >= 3.5) & (4.57 - t <= 4.55)
 
-    R = np.empty_like(Ms)
-    mask1 = Ms < M_b1
-    mask2 = (Ms >= M_b1) & (Ms <= M_b2)
-    mask3 = Ms > M_b2
+        x_vals = 4.57 - t[mask]
+        runs = all_runs[conc]
 
-    R[mask1] = A1 * Ms[mask1] ** b1
-    R[mask2] = A2 * Ms[mask2] ** b2
-    R[mask3] = A3 * Ms[mask3] ** b3
+        mean_curve = runs.mean(axis=0)
 
-    mask = R_pl < 10
+        num_events = np.random.poisson(runs[:, mask] * f_crust[mask])
 
-    v_esc = np.sqrt(2 * G * M_pl * M_E / R_pl / R_E) / 1e3
-    frac_v_err = 0.5 * np.sqrt(((M_pl_lo + M_pl_hi) / (2 * M_pl))**2 +
-                            ((R_pl_lo + R_pl_hi) / (2 * R_pl))**2)
-    v_esc_err = v_esc * frac_v_err
+        totals = num_events.sum(axis=1)  # total impacts per run
+        print(conc, np.median(totals), len(totals[totals == 0]) / len(totals))
 
-    fig_width, fig_height = set_size('thesis')
+        mask = num_events > 0
+        n_runs = mask.shape[0]
+        has_event = mask.any(axis=1)
 
-    _, (ax1, ax2) = plt.subplots(2, 1, sharex=True,
-                                figsize=(fig_width, 1.5 * fig_height),
-                                gridspec_kw={'height_ratios': [1, 1]})
+        last_idx_rev = np.argmax(mask[:, ::-1], axis=1)
+        last_idx = mask.shape[1] - 1 - last_idx_rev
 
-    ax1.errorbar(
-        R_pl[mask], M_pl[mask],
-        xerr=[R_pl_lo[mask], R_pl_hi[mask]],
-        yerr=[M_pl_lo[mask], M_pl_hi[mask]],
-        fmt='o', capsize=3, color=cm.bamako(0.3), alpha=0.25
-    )
+        last_time = np.full(n_runs, np.nan)
+        last_time[has_event] = x_vals[last_idx[has_event]]
 
-    ax1.scatter(0.532, 0.107, marker='s', label='Mars', color='tab:red')
-    ax1.scatter(1.0,   1.0,   marker='o', label='Earth', color='tab:red')
-    ax1.scatter(0.950, 0.815, marker='*', label='Venus', color='tab:red')
+        ax.plot(4.57 - t, mean_curve * f_crust, label=label, color=col)
 
-    ax1.plot(R[R < 10], Ms[R < 10], zorder=10, c='k')
+    ax.set_xlabel(r'Time $t$ [Gya]', fontsize=13)
+    ax.set_ylabel(r'Number of comets delivering' + '\n' +
+                  r'$>c_{\rm HCN}~{\rm mM}$ HCN per Myr', fontsize=13)
 
-    ax1.set_xscale('log')
-    ax1.set_yscale('log')
+    ax.set_xlim(3.5, 4.55)
+    ax.set_xticks([4.55, 4.5, 4.3, 4.1, 3.9, 3.7, 3.5],
+                  labels=['', 4.5, 4.3, 4.1, 3.9, 3.7, 3.5])
+    ax.invert_xaxis()
 
-    ax1.set_xlim(0.5, 10)
-    ax1.set_ylim(bottom=0.05)
+    ax.set_yscale('log')
+    ax.set_ylim(bottom=6e-5, top=1e-0)
 
-    ax1.set_ylabel(r'Mass $[M_E]$', fontsize=13)
-    ax1.legend(frameon=False, fontsize=11, loc='upper left')
+    ax.set_xlim(ax.get_xlim())
 
-    ax1.tick_params(labelbottom=False)
-    ax1.tick_params(axis='both', which='both', top=True, bottom=True,
+    plt.legend(frameon=False, loc='upper right', fontsize=12)
+
+    ax.minorticks_on()
+    ax.tick_params(axis='both', which='both', top=True, bottom=True,
                     left=True, right=True, direction='in')
 
-    ax2.errorbar(
-        R_pl[mask], v_esc[mask],
-        xerr=[R_pl_lo[mask], R_pl_hi[mask]],
-        yerr=[v_esc_err[mask], v_esc_err[mask]],
-        fmt='o', capsize=3, color=cm.bamako(0.3), alpha=0.25
-    )
-
-    ax2.scatter(0.532, 5.03,  marker='s', label='Mars',  color='tab:red')
-    ax2.scatter(1.0,   11.19, marker='o', label='Earth',  color='tab:red')
-    ax2.scatter(0.950, 10.46, marker='*', label='Venus',  color='tab:red')
-
-    ax2.plot(R[R < 10], np.sqrt(2 * G * Ms[R < 10] * M_E / R[R < 10] / R_E) / 1e3,
-            zorder=10, c='k')
-
-    ax2.set_xscale('log')
-    ax2.set_yscale('log')
-
-    ax2.set_xlim(0.5, 10)
-    ax2.set_ylim(bottom=5)
-
-    ax2.set_xticks([1, 10], labels=[r'1', r'10'])
-    ax2.set_yticks([10, 100], labels=[r'10', r'100'])
-
-    ax2.set_xlabel(r'Radius $[R_E]$', fontsize=13)
-    ax2.set_ylabel(r'Escape velocity $[{\rm km\,s}^{-1}]$', fontsize=13)
-
-    ax2.tick_params(axis='both', which='both', top=True, bottom=True,
-                    left=True, right=True, direction='in')
-
-    plt.tight_layout()
-
-    plt.savefig('./figures/exoplanet_vesc.pdf', format='pdf', bbox_inches='tight')
+    plt.savefig('./figures/fig_S8.pdf', bbox_inches='tight', format='pdf')
 
     plt.show()
 
