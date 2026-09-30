@@ -1,31 +1,19 @@
-"""
-Generate angle, velocity and size distributions for comet imapcts
-"""
+"""Generate angle, velocity and size distributions for comet imapcts"""
 
 import numpy as np
+import numba
 from numba import njit, prange
 
 
 @njit(inline='always')
 def _inverse_cdf(u, r_low, r_high, alpha):
-    """
-    Docstring for _inverse_cdf
-    
-    :param u: Description
-    :param r_low: Description
-    :param r_high: Description
-    :param alpha: Description
-    :return: Description
-    :rtype: NoReturn
-    """
 
     if alpha == 1.0:
         return r_low * np.exp(u * (np.log(r_high) - np.log(r_low)))
-
+    
     c_low = r_low ** (1 - alpha)
     c_high = r_high ** (1 - alpha)
     return (u * (c_high - c_low) + c_low) ** (1.0 / (1 - alpha))
-
 
 @njit(parallel=True)
 def generate_radii(n_samples,
@@ -100,13 +88,13 @@ def generate_radii(n_samples,
     return samples
 
 
-def generate_velocities(npoints, mean=19., std_dev=5., v_esc=11.19):
+def generate_velocities(npoints, mean=28.2, std_dev=5., v_esc=11.19):
     """
     Generate an array of impact velocities using a lognormal distribution.
 
     Parameters:
     - npoints (int): number of impactors
-    - mean (float): mean relative velocity of short period comet (default: 19 km/s)
+    - mean (float): mean impact velocity of short period comet (default: 19 km/s)
     - std_dev (float): standard deviation of lognormal distribution (default: 5 km/s)
     - v_esc (float): escape velocity of the target body (default: 11.19 km/s for Earth)
 
@@ -117,9 +105,7 @@ def generate_velocities(npoints, mean=19., std_dev=5., v_esc=11.19):
     mu = np.log(mean ** 2 / np.sqrt(std_dev ** 2 + mean ** 2))
     sigma = np.sqrt(np.log((std_dev / mean) ** 2 + 1))
 
-    v_rel = np.random.lognormal(mu, sigma, npoints)
-
-    vels = np.sqrt(v_rel ** 2 + v_esc ** 2)
+    vels = np.random.lognormal(mu, sigma, npoints)
 
     return vels
 

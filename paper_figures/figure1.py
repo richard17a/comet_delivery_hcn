@@ -2,6 +2,11 @@
 This script plots the cumulative size-frequency distribution (SFD) of comets entering the inner
 Solar System subject to disruption via rotational instability.
 """
+import sys
+from pathlib import Path
+
+src_path = Path(__file__).resolve().parent / "../analysis"
+sys.path.append(str(src_path))
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -59,6 +64,7 @@ def main():
     for i in range(1, nfiles + 1):
         print(round(100 * i / nfiles, 2), end='%\r')
         fname = "./data/sfd_evolution/nrt_jewitt_12e3/nrt_" + str(i) + ".dat"
+        fname = "../HCN-Delivery-Paper/data/nrt_jewitt_12e3/nrt_" + str(i) + ".dat"
         dout = np.loadtxt(fname, comments="#")
         N_R = dout[:, 2]
         all_N_R.append(N_R)

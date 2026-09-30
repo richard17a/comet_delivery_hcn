@@ -1,6 +1,11 @@
 """
 Docstring for figureS8
 """
+import sys
+from pathlib import Path
+
+src_path = Path(__file__).resolve().parent / "../analysis"
+sys.path.append(str(src_path))
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -68,11 +73,11 @@ def main():
     ax.invert_xaxis()
 
     ax.set_yscale('log')
-    ax.set_ylim(bottom=6e-5, top=1e-0)
+    ax.set_ylim(bottom=1e-5, top=1e-1)
 
     ax.set_xlim(ax.get_xlim())
 
-    plt.legend(frameon=False, loc='upper right', fontsize=12)
+    plt.legend(frameon=False, loc='lower left', fontsize=12)
 
     ax.minorticks_on()
     ax.tick_params(axis='both', which='both', top=True, bottom=True,

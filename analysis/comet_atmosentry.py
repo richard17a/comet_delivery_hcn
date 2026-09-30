@@ -120,6 +120,7 @@ def main():
     theta_vals = np.linspace(15, 90, 50)
 
     param_list = list(itertools.product(theta_vals, radii, vels))
+    np.random.shuffle(param_list)
 
     num_workers = multiprocessing.cpu_count()
     with multiprocessing.Pool(processes=num_workers) as pool:

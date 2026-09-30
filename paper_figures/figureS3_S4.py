@@ -1,6 +1,11 @@
 """
 Docstring for figureS3_S4
 """
+import sys
+from pathlib import Path
+
+src_path = Path(__file__).resolve().parent / "../analysis"
+sys.path.append(str(src_path))
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -152,7 +157,7 @@ def figureS4():
         num_events = np.random.poisson(runs[:, mask] * f_crust[mask])
 
         totals = num_events.sum(axis=1)  # total impacts per run
-        print(np.median(totals), np.mean(totals), len(totals[totals == 0]) / len(totals))
+        print(np.median(totals), np.mean(totals), len(totals[totals == 0]) / len(totals), output_dir)
 
         minv = totals.min()
         maxv = totals.max()
@@ -187,4 +192,4 @@ def figureS4():
 if __name__ == "__main__":
 
     figureS3()
-    figureS4()
+    # figureS4()

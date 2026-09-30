@@ -1,6 +1,11 @@
 """
 Docstring for figure3
 """
+import sys
+from pathlib import Path
+
+src_path = Path(__file__).resolve().parent / "../analysis"
+sys.path.append(str(src_path))
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -50,6 +55,67 @@ def vertical_gradient_span(ax, xmin, xmax, color, alpha_top=0.2, zorder=0, flip=
               transform=trans,
               zorder=zorder,
               rasterized=True)
+
+
+def read_guokorenaga2020(t, plot=False):
+
+    time = np.loadtxt('./data/t_values.dat')
+    Mc_25 = np.loadtxt('./data/Mc_25.dat')
+    Mc_50 = np.loadtxt('./data/Mc_50.dat')
+    Mc_75 = np.loadtxt('./data/Mc_75.dat')
+
+    Mc_50 = Mc_50 / Mc_50[-1]
+    Mc_25 = Mc_25 / Mc_25[-1]
+    Mc_75 = Mc_75 / Mc_75[-1]
+
+    Mc_25 = np.interp(
+                t,
+                time,
+                Mc_25
+            )
+    
+    Mc_50 = np.interp(
+                t,
+                time,
+                Mc_50
+            )
+
+    Mc_75 = np.interp(
+                t,
+                time,
+                Mc_75
+            )
+    
+    t = t[0] - t
+
+    if plot:
+
+        _ = plt.figure(figsize=set_size('thesis'))
+
+        plt.plot(t, Mc_50, label='Guo & Korenaga (2020)')
+        plt.fill_between(t, Mc_25, Mc_75, alpha=0.25)
+
+        plt.plot(t, 0.16 * (t[-1] - t), label='McCulloch & Bennett (1993)')
+
+        plt.xlim(3.7, 4.5)
+        plt.ylim(0, 1)
+
+        plt.xlabel('Time [Gya]', fontsize=13)
+        plt.ylabel('Normalised crustal mass', fontsize=13)
+
+        plt.minorticks_on()
+
+        plt.legend(frameon=False, loc='upper left')
+
+        plt.gca().invert_xaxis()
+
+        plt.gca().tick_params(axis='both', which='both', top=True, bottom=True, left=True, right=True, direction='in')
+
+        # plt.savefig('./src/figures/GK_MB_comparison.pdf', bbox_inches='tight', format='pdf')
+
+        plt.show()
+    
+    return Mc_50
 
 
 def main():
