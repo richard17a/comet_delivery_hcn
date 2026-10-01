@@ -1,5 +1,5 @@
 [![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/PyCQA/pylint)
-[![DOI](https://zenodo.org/badge/DOI/XYZ.svg)](https://doi.org/XYZ)
+[![DOI](https://10.1038/s41598-026-74214-y.svg)](https://10.1038/s41598-026-74214-y)
 
 ## Cometary impacts an unlikely pathway towards the origins of life on Earth
 
