@@ -1,3 +1,13 @@
+"""
+Calculate HCN survival following cometary atmospheric entry.
+
+Atmospheric-entry simulation results are combined with the parametrised
+chemistry model to calculate HCN survival as a function of initial comet
+radius, velocity, and impact angle. The results are interpolated and averaged
+over comet parameter distributions for different atmospheric surface
+densities.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib

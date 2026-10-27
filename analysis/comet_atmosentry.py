@@ -1,9 +1,11 @@
 """
-Docstring
-
 This script was used to produce the simulation_results_*.pkl files used throughout
 the main analysis. The atmosentry package must be pip-installed from pypi.org
 (pip install atmosentry).
+
+This module runs atmospheric-entry simulations over a grid of initial comet
+radii, velocities, and impact angles. For each simulation, the masses,
+velocities, and impact angles of fragments reaching the surface are recorded.
 """
 
 import pickle

@@ -1,3 +1,5 @@
+"""Generate angle, velocity and size distributions for comet imapcts"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib

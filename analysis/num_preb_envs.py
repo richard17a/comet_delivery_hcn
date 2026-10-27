@@ -1,3 +1,16 @@
+"""
+This module containts the Monte Carlo simulations of cometary HCN delivery to
+the early Earth.
+
+This module combines the specified impact bombardment chronology with comet size, impact
+velocity and impcat angle distributions to determine the number of successful cometary
+impacts through time.
+
+These simulations are used to calculate the number and timing of successful cometary impacts. 
+Alternative impact bombardment chronologies can also be used to test the sensitivity of 
+the results to this model assumption
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib

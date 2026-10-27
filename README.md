@@ -4,8 +4,11 @@
 
 This repository contains the code used to generate the figures in Anslow, McDonald, Bonsor, Rimmer, Rae (2026; Scientific Reports).
 
-- ALl scripts used to produce the figures in the main and supplementary text can be found in the sub-directory `paper_figures/`.
+- All scripts used to produce the figures in the main and supplementary text can be found in the sub-directory `paper_figures/`.
 - Analysis scripts, used to perform the Monte Carlo impact experiments of cometary delivery, are contained in the sub-directory `analysis/`.
 
 ## How to cite.....
 Anslow, McDonald, Bonsor, Rimmer, Rae, 2026, Scientific Reports, https://doi.org/10.1038/s41598-026-74214-y
+
+## Contact
+Please get in touch with me if you have any questions, suggestions or if something isn't working! You can do this either by email (r.anslow@outlook.com) or by raising an issue.

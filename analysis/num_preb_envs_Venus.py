@@ -1,3 +1,8 @@
+"""
+This module containts the Monte Carlo simulations of cometary HCN delivery to
+Venus.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib

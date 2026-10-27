@@ -1,5 +1,8 @@
 """
-Docstring for parametrised_chemistry
+This module provides parametrisations for estimating HCN survival following
+a comet impact as a function of impactor velocity, diameter, and impact angle.
+It relates impact velocity to mean peak temperature and applies equilibrium or
+kinetic chemistry fits to estimate the fraction of HCN surviving the impact.
 
 Author
 ------

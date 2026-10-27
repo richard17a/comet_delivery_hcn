@@ -1,3 +1,8 @@
+"""
+This module containts the Monte Carlo simulations of cometary HCN delivery to
+Mars.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib

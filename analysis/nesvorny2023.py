@@ -1,3 +1,11 @@
+"""
+Calculate the impact bombardment chronology used in the main analysis.
+
+This module calculates the cumulative number of impacts as a function of time
+and converts the impact chronology between different minimum impactor sizes
+using an assumed size-frequency distribution.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
@@ -45,9 +53,6 @@ def set_size(width, fraction=1, subplots=(1, 1)):
 
 
 def convert_sfd(F, D_new=0.2, D_old=10):
-    """
-    this needs to be careful that D_old really is in the range 1<D_old<50km
-    """
 
     alpha_1 = 1.78
     alpha_2 = 2.34

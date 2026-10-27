@@ -1,3 +1,7 @@
+"""
+Utilities for interpolating and visualising atmospheric entry simulations (using the atmosentry package).
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
@@ -137,9 +141,6 @@ def interp_validation():
 
 
 def interp_validation_angle():
-    """
-    FIX UP -- problem was that np.artan2 was giving results in negative quadrant - but interpolation for atmos needs positive
-    """
     m_frag_interp, v_frag_interp, theta_frag_interp = generate_interpolator()
 
     with open("./data/simulation_results.pkl", "rb") as f:
@@ -230,26 +231,6 @@ def rho0_comparison():
 
         sc = ax.scatter(np.array(r_vals), np.array(v_vals) / 1e3, c=np.array(m_vals), cmap='viridis', vmin=0, vmax=1)
 
-        # m_frag_interp, v_frag_interp, theta_frag_interp = generate_interpolator(fpath)
-
-        # query_points = [
-        #     (200, 50e3),
-        #     (250, 20e3),
-        #     (450, 20e3),
-        #     (150, 60e3),
-        #     (3500, 45e3),
-        #     (6500, 60e3),
-        #     (8000, 12e3)
-        # ]
-
-        # for r, v in query_points:
-        #     m0 = (4 * np.pi * 0.6e3 / 3) * (r ** 3)
-
-        #     query_point = np.array([initial_angs[idx], r, v])
-        #     m_frag_estimate = m_frag_interp(query_point) / m0
-            
-        #     ax.scatter(r, v / 1e3, c=np.array(m_frag_estimate), cmap='viridis', edgecolor='k', vmin=0, vmax=1)
-
         ax.set_xscale('log')
         ax.minorticks_on()
 
@@ -291,26 +272,6 @@ def rho0_comparison():
 
         sc = ax.scatter(np.array(r_vals), np.array(v_vals) / 1e3, c=np.array(m_vals) / 1e3, cmap='viridis', vmin=11.19, vmax=70)
 
-        # m_frag_interp, v_frag_interp, theta_frag_interp = generate_interpolator(fpath)
-
-        # query_points = [
-        #     (200, 50e3),
-        #     (250, 20e3),
-        #     (450, 20e3),
-        #     (150, 60e3),
-        #     (3500, 45e3),
-        #     (6500, 60e3),
-        #     (8000, 12e3)
-        # ]
-
-        # for r, v in query_points:
-        #     m0 = (4 * np.pi * 0.6e3 / 3) * (r ** 3)
-
-        #     query_point = np.array([initial_angs[idx], r, v])
-        #     m_frag_estimate = m_frag_interp(query_point) / m0
-            
-        #     ax.scatter(r, v / 1e3, c=np.array(m_frag_estimate), cmap='viridis', edgecolor='k', vmin=0, vmax=1)
-
         ax.set_xscale('log')
         ax.minorticks_on()
 
@@ -325,7 +286,5 @@ def rho0_comparison():
 if __name__ == "__main__":
     
     # interp_validation()
-    # interp_validation_angle()
+    # interp_validaticon_angle()
     rho0_comparison()
-    
-    # want to plot at some point a (r0,v0) comparison for three atmos profiles...
